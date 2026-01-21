@@ -1,6 +1,5 @@
 /**
- * This is the main entry point for the agent.
- * It defines the workflow graph, state, tools, nodes and edges.
+ * agent服务
  */
 
 import { z } from "zod";
@@ -15,7 +14,19 @@ import {
   CopilotKitStateAnnotation,
 } from "@copilotkit/sdk-js/langgraph";
 import { Annotation } from "@langchain/langgraph";
+import * as dotenv from "dotenv";
 
+// import { ChatZhipuAI } from "@langchain/community/chat_models/zhipuai";
+
+// const model = new ChatZhipuAI({
+//   apiKey: process.env.OPENAI_API_KEY || "da205089ecfe4dbab7a12a037280346f.mDizkCCctR8ummfK",
+//   model: "glm-4-flash",
+// });
+
+dotenv.config();
+// process.env.LANGCHAIN_TRACING = "true";
+// 用于控制日志输出的详细程度
+process.env.LANGCHAIN_VERBOSE = "true";
 // 1. Define our agent state, which includes CopilotKit state to
 //    provide actions to the state.
 const AgentStateAnnotation = Annotation.Root({
@@ -43,10 +54,20 @@ const getWeather = tool(
 // 4. Put our tools into an array
 const tools = [getWeather];
 
-// 5. Define the chat node, which will handle the chat logic
+
+
+// 6. Define the chat node, which will handle the chat logic
 async function chat_node(state: AgentState, config: RunnableConfig) {
-  // 5.1 Define the model, lower temperature for deterministic responses
-  const model = new ChatOpenAI({ temperature: 0, model: "gpt-4o" });
+
+  // 5. Initialize the model instance once
+  const model = new ChatOpenAI({
+    temperature: 0,
+    model: "glm-4-flash",
+    apiKey: process.env.OPENAI_API_KEY || "da205089ecfe4dbab7a12a037280346f.mDizkCCctR8ummfK",
+    configuration: {
+      baseURL: process.env.OPENAI_API_BASE || "https://open.bigmodel.cn/api/paas/v4/",
+    },
+  });
 
   // 5.2 Bind the tools to the model, include CopilotKit actions. This allows
   //     the model to call tools that are defined in CopilotKit by the frontend.
@@ -103,8 +124,4 @@ const workflow = new StateGraph(AgentStateAnnotation)
   .addEdge("tool_node", "chat_node")
   .addConditionalEdges("chat_node", shouldContinue as any);
 
-const memory = new MemorySaver();
-
-export const graph = workflow.compile({
-  checkpointer: memory,
-});
+export const graph = workflow.compile();

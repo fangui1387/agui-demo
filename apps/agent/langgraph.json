@@ -5,5 +5,11 @@
   "graphs": {
     "starterAgent": "./src/agent.ts:graph"
   },
-  "env": ".env"
+  "env": {
+    "LANGGRAPH_TIMEOUT": "120",
+    "LANGCHAIN_TRACING_V2": "false",
+    "OPENAI_API_KEY": "da205089ecfe4dbab7a12a037280346f.mDizkCCctR8ummfK",
+    "OPENAI_API_BASE": "https://open.bigmodel.cn/api/paas/v4/",
+    "LANGGRAPH_PERSIST": "false"
+  }
 }

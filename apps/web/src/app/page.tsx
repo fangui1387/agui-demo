@@ -1,13 +1,12 @@
 "use client";
 
-import { useCoAgent, useCopilotAction } from "@copilotkit/react-core";
+import { useCoAgent, useCopilotAction, useHumanInTheLoop } from "@copilotkit/react-core";
 import { CopilotKitCSSProperties, CopilotSidebar } from "@copilotkit/react-ui";
 import { useState } from "react";
 
 export default function CopilotKitPage() {
   const [themeColor, setThemeColor] = useState("#6366f1");
 
-  // 🪁 Frontend Actions: https://docs.copilotkit.ai/guides/frontend-actions
   useCopilotAction({
     name: "setThemeColor",
     description: "Set the theme color of the page.",
@@ -21,6 +20,20 @@ export default function CopilotKitPage() {
     },
   });
 
+  useCopilotAction({
+    name: "sayHello",
+    description: "和用户打招呼",
+    parameters: [{
+      name: "name",
+      description: "用户名字，如果没有，就用张三代替",
+    }],
+    handler({ name }) {
+      alert(`你好，${name}`)
+    },
+  });
+
+  
+
   return (
     <main style={{ "--copilot-kit-primary-color": themeColor } as CopilotKitCSSProperties}>
       <YourMainContent themeColor={themeColor} />
@@ -29,7 +42,8 @@ export default function CopilotKitPage() {
         defaultOpen={true}
         labels={{
           title: "Popup Assistant",
-          initial: "👋 Hi, there! You're chatting with an agent. This agent comes with a few tools to get you started.\n\nFor example you can try:\n- **Frontend Tools**: \"Set the theme to orange\"\n- **Shared State**: \"Write a proverb about AI\"\n- **Generative UI**: \"Get the weather in SF\"\n\nAs you interact with the agent, you'll see the UI update in real-time to reflect the agent's **state**, **tool calls**, and **progress**."
+          initial: "👋 通过AGUI协议，你能与智能体进行动态交互. \n例如:\n- **Frontend Tools**: \"更改页面主题\"\n- **Frontend Tools**: \"更改窗口位置\"\n- **Frontend Tools**: \"调用页面脚本alert（向用户打招呼）\"\n- **Frontend Tools**: \"动态渲染UI\"\n\n- **Frontend Tools**: \"动态更新列表\"."
+          
         }}
       />
     </main>
@@ -41,18 +55,50 @@ type AgentState = {
   proverbs: string[];
 }
 
+
+
 function YourMainContent({ themeColor }: { themeColor: string }) {
-  // 🪁 Shared State: https://docs.copilotkit.ai/coagents/shared-state
-  const {state, setState} = useCoAgent<AgentState>({
+  // 独立的 state，与 coagent 无关
+  const [localState, setLocalState] = useState("center, center");
+
+  const { state, setState } = useCoAgent<AgentState>({
     name: "starterAgent",
     initialState: {
       proverbs: [
         "CopilotKit may be new, but its the best thing since sliced bread.",
-      ],
+      ]
     },
   })
 
-  // 🪁 Frontend Actions: https://docs.copilotkit.ai/coagents/frontend-actions
+  const getPositionClasses = (position: string) => {
+    const positions = position.split(',').filter(p => p);
+    let classes = ' items-center justify-center';
+    for (let pos of positions) {
+      pos = pos.trim()
+      switch(pos) {
+        case 'center':
+          classes += ' items-center justify-center';
+          break;
+        case 'top':
+          classes += ' justify-start';
+          break;
+        case 'bottom':
+          classes += ' justify-end';
+          break;
+        case 'left':
+          classes += ' items-start';
+          break;
+        case 'right':
+          classes += ' items-end';
+          break;
+      }
+    }
+ 
+    
+    return classes;
+  };
+
+
   useCopilotAction({
     name: "addProverb",
     description: "Add a proverb to the list.",
@@ -69,7 +115,6 @@ function YourMainContent({ themeColor }: { themeColor: string }) {
     },
   }, [setState]);
 
-  //🪁 Generative UI: https://docs.copilotkit.ai/coagents/generative-ui
   useCopilotAction({
     name: "getWeather",
     description: "Get the weather for a given location.",
@@ -81,11 +126,56 @@ function YourMainContent({ themeColor }: { themeColor: string }) {
       return <WeatherCard location={args.location} themeColor={themeColor} />
     },
   });
+  // 移动窗口位置
+  useCopilotAction({
+    name: "movePop",
+    description: "移动窗口布局",
+    parameters: [{
+      name: "position",
+      description: "要移动的位置，请自动转换，如果是顶部或上部，就转换为top，依此类推，如果是左上，请返回left, top, 用，隔开, 中间用center表示",
+    }],
+    handler({ position }) {
+      setLocalState(position);
+    },
+  }, [setLocalState]);
+
+
+  // 人机交互生成日程
+  useHumanInTheLoop({ 
+    name: "生成日程",
+    description: "帮我生成一个日程信息",
+    parameters: [
+     
+      {
+        name: "date",
+        type: "string",
+        description: "日程时间",
+        required: true,
+      },
+      {
+        name: "place",
+        type: "string",
+        description: "日程地点",
+        required: true,
+      },
+    ],
+    render: ({ args, respond, status }) => {
+      const { date, place } = args;
+      return (
+        <RenderMetting
+          date={date!}
+          place={place!}
+          onConfirm={() => respond?.('meeting confirmed')}
+          onCancel={() => respond?.('meeting canceled')}
+        />
+      );
+    },
+    });
 
   return (
     <div
       style={{ backgroundColor: themeColor }}
-      className="h-screen w-screen flex justify-center items-center flex-col transition-colors duration-300"
+      className={`h-screen w-screen flex flex-col transition-colors duration-300${getPositionClasses(localState || 'center, center')}`}
     >
       <div className="bg-white/20 backdrop-blur-md p-8 rounded-2xl shadow-xl max-w-2xl w-full">
         <h1 className="text-4xl font-bold text-white mb-2 text-center">Proverbs</h1>
@@ -170,4 +260,22 @@ function WeatherCard({ location, themeColor }: { location?: string, themeColor: 
     </div>
   </div>
   );
+}
+
+
+function RenderMetting({date, place, onConfirm, onCancel}: {date: string, place: string, onConfirm: Function, onCancel: Function}) {
+  return (
+    <div className="metting-container">
+      <div className="metting-title">最新日程</div>
+      <div className="metting-form">
+        <div className="metting-date">时间：{ date }</div>
+        <div className="metting-place">地点：{ place }</div>
+      </div>
+      <div className="metting-button-group">
+          <div className="metting-button" onClick={() => onCancel?.('cancel')}>取消</div>
+          <div className="metting-button active" onClick={() => onConfirm?.('agree')}>确认</div>
+      </div>
+ 
+    </div>
+  )
 }

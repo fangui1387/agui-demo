@@ -22,3 +22,42 @@ body,
 html {
   height: 100%;
 }
+
+.metting-container {
+  padding: 16px;
+  box-shadow: 0px 0px 1px 0px;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+}
+.metting-title {
+  font-size: 1.5rem;
+  text-align: center;
+  font-weight: bold;
+  color: #656464;
+  font-family: '微软雅黑';
+  border-bottom: 1px solid #ccc;
+  padding-bottom: 8px;
+  margin-bottom: 8px;
+}
+
+.metting-button-group {
+  display: flex;
+  margin-top: 20px;
+  justify-content: space-between;
+}
+
+.metting-button {
+  flex: 1;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+  margin-left: 10px;
+  text-align: center;
+  line-height: 1.5;
+  width: 48%;
+  padding: 10px;
+}
+
+.metting-button.active {
+  background: var(--copilot-kit-primary-color);
+  color: #fff;
+}
